@@ -103,6 +103,8 @@ import { AdvancedBloomFilter } from 'pixi-filters';
 
 
     // ---- APP STARTS ----- //
+    app.stage.eventMode = 'static';
+    app.stage.hitArea = app.screen;
 
     const viewport = new Viewport({
         screenWidth: app.screen.width,
@@ -119,8 +121,15 @@ import { AdvancedBloomFilter } from 'pixi-filters';
     
     viewport.cullableChildren = true;
     app.renderer.on('resize', (width, height) => viewport.resize(width, height));
-    
-    viewport.zoom(+700);
+
+     
+    viewport.zoom(-200);
+
+    const guide = new Container()
+    viewport.addChild(guide);
+    guide.position.set(1000,1600)
+    viewport.follow(guide, { speed: 2, radius: 100, acceleration: 0.1 });
+
 
     viewport.wheel(); //// DEBUG ONLY
     
@@ -139,41 +148,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
     app.renderer.on('resize', resizeVignette);
 
     app.stage.addChild(vig);
-
-    ///////////////////// World construction///////////////////////////-----------------------------------------------------------
-
-
-    ////////////////////////////////////// START SCREEN ///------------------
-    const C1 = new Sprite(C1Tex);
-    C1.anchor.set(0.5,0.5)
-    C1.x = app.screen.width / 2;
-    C1.y = 200;
-    C1.scale.set(0.7)
-
-    const C2 = new Sprite(C2Tex);
-    C2.anchor.set(0.5,0.5)
-    C2.x = app.screen.width / 2;
-    C2.y = 200;
-    C2.rotation = 180
-    C2.scale.set(0.5)
-
-    const C3 = new Sprite(C3Tex);
-    C3.anchor.set(0.5,0.5)
-    C3.x = app.screen.width / 2;
-    C3.y = 200;
-
-    app.ticker.add((time) => {
-    C1.rotation -= 0.01 * time.deltaTime;
-    C2.rotation -= -0.01 * time.deltaTime;
-    C3.rotation -= 0.01 * time.deltaTime;
-  });
-
-    viewport.addChild(C1,C2,C3);
-
-
-
-    ///////////////////////////////////// START SCREEN END ///---------------
-    //////////
+  
     //////////////////////////////////////WORLD CONSTRUCTION ///------------------------
     
     const midground = new Container(); //--------------------------------------------------midground
@@ -204,7 +179,57 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         tree3.scale.set(1.3);
         tree3.position.set(2000, 7000);
         tree3.zIndex = -1;
-    midground.addChild(tree3);
+    midground.addChild(tree3); 
+    
+const leafPositions = [  // ------------------------ moss amount and positions. moss spawn is handled on player spawn.
+    [1590, 1000],
+    [2000, 1800],
+    [2300, 1900],
+    [1200, 2500],
+    [1800, 4200],
+    [900, 6000],
+];
+    
+
+    const masks = new Container();  //-------------------- intro mask choices
+    midground.addChild(masks);
+
+    const mask1 = new Sprite(bunMaskTexture);
+        mask1.anchor.set(0.5,0.5)
+        mask1.position.set(1150,1720);
+        mask1.rotation = Math.PI / 9;
+    masks.addChild(mask1)
+
+    const mask2 = new Sprite(catMaskTexture);
+        mask2.anchor.set(0.5,0.5)
+        mask2.position.set(1260,1745);
+        mask2.rotation = Math.PI / 9;
+    masks.addChild(mask2)
+
+    const mask3 = new Sprite(owlMaskTexture);
+        mask3.anchor.set(0.5,0.5)
+        mask3.position.set(1370,1770);
+        mask3.rotation = -Math.PI / 9;
+    masks.addChild(mask3)
+
+    for (const mask of [mask1, mask2, mask3]) { // --------- mask selection
+    const baseRotation = mask.rotation;
+    let hovered = false;
+
+    mask.eventMode = 'static';
+    mask.cursor = 'pointer';
+
+    mask.on('pointerover', () => { hovered = true; });
+    mask.on('pointerout', () => { hovered = false; });
+
+    app.ticker.add((ticker) => {
+        const target = baseRotation + (hovered ? 0.1 : 0);
+        const ease = 1 - Math.exp(-12 * ticker.deltaMS / 1000);
+
+        mask.rotation += (target - mask.rotation) * ease;
+    });
+    
+}
 
 
 
@@ -225,7 +250,6 @@ import { AdvancedBloomFilter } from 'pixi-filters';
 
     const background = new Container(); //--------------------------------------------------background
     background.zIndex = -2;
-    background.alpha = 0.3;
     viewport.addChild(background);
 
     const bgtr1 = new Sprite(treeTex);
@@ -234,8 +258,36 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         bgtr1.scale.set(1.4);
         //tree3.rotation = Math.PI / 5;
         bgtr1.position.set(1000, 3000);
-        bgtr1.zIndex = -1;
+        bgtr1.alpha = 0.3;
     background.addChild(bgtr1);
+
+        
+    const logo = new Container(); /// ------- LOGO
+    background.addChild(logo);
+
+        logo.position.set(700,450)
+        logo.scale.set(0.7)
+
+    const C1 = new Sprite(C1Tex);
+        C1.anchor.set(0.5,0.5)
+        C1.scale.set(0.7)
+
+    const C2 = new Sprite(C2Tex);
+        C2.anchor.set(0.5,0.5)
+        C2.rotation = 180
+        C2.scale.set(0.5)
+
+    const C3 = new Sprite(C3Tex);
+        C3.anchor.set(0.5,0.5)
+
+    app.ticker.add((time) => {
+        C1.rotation -= 0.01 * time.deltaTime;
+        C2.rotation -= -0.01 * time.deltaTime;
+        C3.rotation -= 0.01 * time.deltaTime;
+  });
+
+    logo.addChild(C1,C2,C3);
+
 
     /////////////////////////////////////////////////////////////////////////////////////
 
@@ -260,19 +312,58 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         foreground.position.set(dx * (1 - 1.2), dy * (1 - 1.2));  // faster
 });
 
+////////////////////////////////////////////
+///////////// PLAYER SPAWNING /////////////////////////////////////////////////----------------- player starts
+////////////////////////////////////////////
+let player = null;
 
-   // DEBUG // Player spawn settings. ------------------------------------------------------------------------------------------
-    const player = new spawn({
+function chooseMask(maskName) {
+    if (player) return;
+
+    player = new spawn({
         app,
         textures,
         seg: 3,
-        mask: 'bun',
+        mask: maskName,
         move: true,
         color: 'player',
-        x: app.screen.width / 2,
-        y: app.screen.width / 2,
+        x: 1000,
+        y: 1700,
     });
 
+    viewport.addChild(player.container);
+    viewport.follow(player.container, { speed: 5, radius: 100, acceleration: 0.1 });
+    masks.visible = false; // Hide the choices after selection
+
+    app.ticker.add((ticker) => {
+                    player.update(ticker.deltaMS);
+                });
+
+    for (const [x, y] of leafPositions) {
+    createLeaf({
+        texture: leafTex,
+        parent: midground,
+        ticker: app.ticker,
+        player,
+        x,
+        y,
+        });
+    }
+
+}
+
+for (const [maskSprite, maskName] of [
+    [mask1, 'bun'],
+    [mask2, 'cat'],
+    [mask3, 'owl'],
+]) {
+    maskSprite.on('pointerdown', (event) => {
+        event.stopPropagation();
+        chooseMask(maskName);
+    });
+}
+
+   //////////////////////////////////////////////////////////////////////////////////////
     
     const NpcOwl = new spawn({
         app,
@@ -286,85 +377,48 @@ import { AdvancedBloomFilter } from 'pixi-filters';
     });
 
     viewport.addChild(NpcOwl.container);
-
-    viewport.addChild(player.container);
-    viewport.follow(player.container, { speed: 5, radius: 100, acceleration: 0.1 });
+    app.ticker.add((ticker) => {
+                    
+                    NpcOwl.update(ticker.deltaMS);
+                });
 
     
+//////////////////////////////////////////////////////////////////////////////////////////
 
+        window.addEventListener('pointermove', (event) => {
+        if (!player) return;
 
-
-    // Convert browser pointer coordinates to canvas coordinates for idle face tracking.
-    window.addEventListener('pointermove', (event) => {
-        const canvasBounds = app.canvas.getBoundingClientRect();
-        const screenX = (event.clientX - canvasBounds.left)
-            * app.screen.width / canvasBounds.width;
-        const screenY = (event.clientY - canvasBounds.top)
-            * app.screen.height / canvasBounds.height;
+        const bounds = app.canvas.getBoundingClientRect();
+        const screenX = (event.clientX - bounds.left) * app.screen.width / bounds.width;
+        const screenY = (event.clientY - bounds.top) * app.screen.height / bounds.height;
         const worldPosition = viewport.toLocal({ x: screenX, y: screenY });
+
         player.setCursorPosition(worldPosition.x, worldPosition.y);
-    });
-
-    window.addEventListener('pointermove', (event) => {
-        const canvasBounds = app.canvas.getBoundingClientRect();
-        const screenX = (event.clientX - canvasBounds.left)
-            * app.screen.width / canvasBounds.width;
-        const screenY = (event.clientY - canvasBounds.top)
-            * app.screen.height / canvasBounds.height;
-        const worldPosition = viewport.toLocal({ x: screenX, y: screenY });
         NpcOwl.setCursorPosition(worldPosition.x, worldPosition.y);
     });
 
-    // Keep pointer input in main so the same spawn class can also be driven by game code.
-    app.stage.eventMode = 'static';
-    app.stage.hitArea = app.screen;
     app.stage.on('pointerdown', (event) => {
-        if (event.button === 0) {
-            const worldPosition = viewport.toLocal(event.global);
-            player.startDrag(worldPosition.x, worldPosition.y);
-        }
+        if (!player || event.button !== 0) return;
+
+        const worldPosition = viewport.toLocal(event.global);
+        player.startDrag(worldPosition.x, worldPosition.y);
     });
+
     app.stage.on('globalpointermove', (event) => {
+        if (!player) return;
+
         const worldPosition = viewport.toLocal(event.global);
         player.dragTo(worldPosition.x, worldPosition.y);
     });
-    app.stage.on('pointerup', () => player.stopDrag());
-    app.stage.on('pointerupoutside', () => player.stopDrag());
-    app.stage.on('pointercancel', () => player.stopDrag());
 
-    
-    
-    // Update the creature each frame; scripted movement can call player.setTarget(x, y).
-    app.ticker.add((ticker) => {
-        player.update(ticker.deltaMS);
-        NpcOwl.update(ticker.deltaMS);
-    });
+    app.stage.on('pointerup', () => player?.stopDrag());
+    app.stage.on('pointerupoutside', () => player?.stopDrag());
+    app.stage.on('pointercancel', () => player?.stopDrag());
 
 
-    ///// -------------------------------- LEAF SPAWNING ---------------------- //////
 
-////////////////////////////////// ---------- each x,y = one leaf ////////////////////
-const leafPositions = [
-    [1590, 1000],
-    [2000, 1800],
-    [2300, 1900],
-    [1200, 2500],
-    [1800, 4200],
-    [900, 6000],
-];
+///////////////////////////
 
-//////////////////////////////
-
-for (const [x, y] of leafPositions) {
-    createLeaf({
-        texture: leafTex,
-        parent: midground,
-        ticker: app.ticker,
-        player,
-        x,
-        y,
-    });
-}
 
 
 })();
