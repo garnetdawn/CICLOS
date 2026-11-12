@@ -10,7 +10,7 @@
     "deploy": "gh-pages -d <bundle-folder>",
     "build": "vite build",
     "preview": "vite preview",
-    "vercel-build": "npm ci && npm run build",
+    "vercel-build": "npm ci && npm run build"
   },
   "keywords": [],
   "author": "",
