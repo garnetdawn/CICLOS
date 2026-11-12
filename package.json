@@ -7,7 +7,9 @@
   "homepage": "https://garnetdawn.github.io/CICLOS",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "gh-pages -d <bundle-folder>"
+    "deploy": "gh-pages -d <bundle-folder>",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
