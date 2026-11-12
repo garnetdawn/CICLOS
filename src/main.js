@@ -2,6 +2,7 @@ import { Application, Assets, Container, Sprite } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import { initDevtools } from '@pixi/devtools';
 import { spawn } from './movement.js';
+import { createLeaf } from './modules.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 
 
@@ -49,6 +50,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         trunk5Tex,
 
         skyTex,
+        leafTex,
 
     ] = await Promise.all([
         Assets.load(new URL('../.assets/sprites/h_cat.png', import.meta.url).href),
@@ -78,6 +80,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         Assets.load(new URL('../.assets/sprites/fg_trunk5.png', import.meta.url).href),
 
         Assets.load(new URL('../.assets/sprites/skybox.jpg', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/leaf.png', import.meta.url).href),
     ]);
 
     const textures = {
@@ -175,7 +178,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
     
     const midground = new Container(); //--------------------------------------------------midground
     viewport.addChild(midground);
-
+    midground.zIndex = -1;
 
     const tree = new Sprite(tree3Tex);
         tree.label = 'birthtree';
@@ -204,10 +207,12 @@ import { AdvancedBloomFilter } from 'pixi-filters';
     midground.addChild(tree3);
 
 
+
     /////////////////////////////////////////////////////////////////////////////////////
 
     const foreground = new Container(); //--------------------------------------------------foreround
     foreground.zIndex = 1;
+    foreground.eventMode = 'none';
     viewport.addChild(foreground);
 
     const trunk1 = new Sprite(trunk1Tex);
@@ -260,7 +265,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
     const player = new spawn({
         app,
         textures,
-        seg: 9,
+        seg: 3,
         mask: 'bun',
         move: true,
         color: 'player',
@@ -277,7 +282,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         move: true,
         color: 'npc',
         x: 1300,
-        y: 2000,
+        y: 3000,
     });
 
     viewport.addChild(NpcOwl.container);
@@ -334,25 +339,33 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         player.update(ticker.deltaMS);
         NpcOwl.update(ticker.deltaMS);
     });
+
+
+    ///// -------------------------------- LEAF SPAWNING ---------------------- //////
+
+////////////////////////////////// ---------- each x,y = one leaf ////////////////////
+const leafPositions = [
+    [1590, 1000],
+    [2000, 1800],
+    [2300, 1900],
+    [1200, 2500],
+    [1800, 4200],
+    [900, 6000],
+];
+
+//////////////////////////////
+
+for (const [x, y] of leafPositions) {
+    createLeaf({
+        texture: leafTex,
+        parent: midground,
+        ticker: app.ticker,
+        player,
+        x,
+        y,
+    });
+}
+
+
 })();
 
-
-
-
-
-
-
-const bubbleLayer = new Container();
-viewport.addChild(bubbleLayer); // Add after your world objects.
-
-const bubble = new SpeechBubble(bubbleTexture);
-bubbleLayer.addChild(bubble);
-
-bubble.show(npcSprite, 'Hello there!');
-
-app.ticker.add(() => {
-  bubble.update(bubbleLayer);
-});
-
-// When the dialogue ends:
-bubble.hide();

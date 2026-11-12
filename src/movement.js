@@ -23,6 +23,7 @@ export class spawn {
         this.mask = mask;
         this.move = move;
         this.color = color;
+        this.segmentTexture = characterTextures.segment;
 
         const startX = x ?? app.screen.width / 2;
         const startY = y ?? app.screen.height / 2;
@@ -333,5 +334,48 @@ export class spawn {
 
         this.face.skew.x += (targetSkewX - this.face.skew.x) * skewEase;
         this.face.skew.y += (targetSkewY - this.face.skew.y) * skewEase;
+
+
+
+    }
+
+    addSegment() {
+    this.seg += 1;
+
+    const index = this.segments.length;
+    const segment = new Sprite(this.segmentTexture);
+    segment.label = `Segment ${this.seg}`;
+    segment.anchor.set(0.5);
+    segment.zIndex = 800 - index;
+
+    this.segments.push(segment);
+    this.container.addChild(segment);
+
+    // Recalculate every segment's scale for the new total.
+    this.segments.forEach((part, i) => {
+        part.scale.set(Math.max(1 - i / (this.seg + 1), 0.2));
+    });
+
+    // Keep the movement chain and trail positions in sync.
+    this.chainParts = [this.body, ...this.segments];
+
+    const spacing = index === 0
+        ? this.chainSpacing * this.chainOffset
+        : this.chainSpacing * segment.scale.x * this.segmentSpacingFactor;
+
+    const lastDistance = this.partTrailDistances[this.partTrailDistances.length - 1];
+    this.partTrailDistances.push(lastDistance - spacing);
+
+    const maxSpacingFactor =
+        this.segmentSpacingFactor + this.maxChainOffset - this.baseChainOffset;
+
+    this.chainLength = this.chainSpacing * this.maxChainOffset
+        + this.segments.reduce(
+            (length, part) => length
+                + this.chainSpacing * part.scale.x * maxSpacingFactor,
+            0,
+        );
+
+    this.updateChain();
     }
 }
