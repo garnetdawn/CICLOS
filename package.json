@@ -9,7 +9,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy": "gh-pages -d <bundle-folder>",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel-build": "npm ci && npm run build",
   },
   "keywords": [],
   "author": "",
