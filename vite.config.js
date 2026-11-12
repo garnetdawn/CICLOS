@@ -1,3 +1,3 @@
 export default {
-  base:"/CICLOS/"
+  base:"/CICLOS/dist"
 }
