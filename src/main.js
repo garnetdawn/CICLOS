@@ -77,7 +77,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         Assets.load(new URL('../.assets/sprites/fg_trunk2.png', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/fg_trunk3.png', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/fg_trunk4.png', import.meta.url).href),
-        Assets.load(new URL('../.assets/sprites/fg_trunk5.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/FG_trunk5.png', import.meta.url).href),
 
         Assets.load(new URL('../.assets/sprites/skybox.jpg', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/leaf.png', import.meta.url).href),
