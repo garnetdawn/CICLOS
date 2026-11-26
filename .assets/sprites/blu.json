@@ -1,0 +1,65 @@
+{ "skeleton": { "images": "D:/Github/CICLOS/.assets/sprites/images/" },
+"PhotoshopToSpine": { "scale": 1, "padding": 1, "trim": true },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "Layer7", "bone": "root", "attachment": "Layer7" },
+	{ "name": "Layer 6(2)", "bone": "root", "attachment": "Layer 6(2)" },
+	{ "name": "arm", "bone": "root", "attachment": "arm" },
+	{ "name": "BUG", "bone": "root", "attachment": "BUG" },
+	{ "name": "bug wing", "bone": "root", "attachment": "bug wing" },
+	{ "name": "hand", "bone": "root", "attachment": "hand" },
+	{ "name": "wing", "bone": "root", "attachment": "wing" },
+	{ "name": "neck", "bone": "root", "attachment": "neck" },
+	{ "name": "neck eye", "bone": "root", "attachment": "neck eye" },
+	{ "name": "eyeback", "bone": "root", "attachment": "eyeback" },
+	{ "name": "tongue", "bone": "root", "attachment": "tongue" },
+	{ "name": "pupil", "bone": "root", "attachment": "pupil" },
+	{ "name": "head", "bone": "root", "attachment": "head" }
+],
+"skins": {
+	"default": {
+		"Layer7": {
+			"Layer7": { "x": 1620.5, "y": -1374.5, "width": 1237, "height": 1269 }
+		},
+		"Layer 6(2)": {
+			"Layer 6(2)": { "x": 1573, "y": -2280, "width": 322, "height": 1626 }
+		},
+		"arm": {
+			"arm": { "x": 2140, "y": -1142.5, "width": 314, "height": 161 }
+		},
+		"BUG": {
+			"BUG": { "x": 2504.5, "y": -880.5, "width": 423, "height": 743 }
+		},
+		"bug wing": {
+			"bug wing": { "x": 2625.5, "y": -987, "width": 213, "height": 390 }
+		},
+		"hand": {
+			"hand": { "x": 2501, "y": -984.5, "width": 474, "height": 541 }
+		},
+		"wing": {
+			"wing": { "x": 1489, "y": -1591, "width": 718, "height": 1622 }
+		},
+		"neck": {
+			"neck": { "x": 1741.5, "y": -880.5, "width": 521, "height": 551 }
+		},
+		"neck eye": {
+			"neck eye": { "x": 1638.5, "y": -1032, "width": 227, "height": 292 }
+		},
+		"eyeback": {
+			"eyeback": { "x": 1973.5, "y": -815.5, "width": 69, "height": 45 }
+		},
+		"tongue": {
+			"tongue": { "x": 2008.5, "y": -870.5, "width": 195, "height": 97 }
+		},
+		"pupil": {
+			"pupil": { "x": 1986, "y": -816.5, "width": 20, "height": 31 }
+		},
+		"head": {
+			"head": { "x": 1971, "y": -777, "width": 290, "height": 330 }
+		}
+	}
+},
+"animations": { "animation": {} }
+}

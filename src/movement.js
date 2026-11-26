@@ -20,10 +20,12 @@ export class spawn {
 
         this.app = app;
         this.seg = seg;
+        this.leavesEaten = 0;
         this.mask = mask;
         this.move = move;
         this.color = color;
         this.segmentTexture = characterTextures.segment;
+        this.scriptedTargetActive = false;
 
         const startX = x ?? app.screen.width / 2;
         const startY = y ?? app.screen.height / 2;
@@ -130,6 +132,7 @@ export class spawn {
     setTarget(x, y) {
         this.dragging = false;
         this.idleActive = false;
+        this.scriptedTargetActive = true;
         this.targetX = x;
         this.targetY = y;
         if (!this.cursorTracked) {
@@ -137,6 +140,17 @@ export class spawn {
             this.cursorY = y;
         }
     }
+
+    cancelScriptedTarget() {
+        this.scriptedTargetActive = false;
+        this.dragging = false;
+        this.targetX = this.container.x;
+        this.targetY = this.container.y;
+        this.idleCenterX = this.container.x;
+        this.idleCenterY = this.container.y;
+        this.idleActive = true;
+    }
+
 
     startDrag(x, y) {
         if (!this.move) {
@@ -148,6 +162,7 @@ export class spawn {
         this.targetY = y;
         this.dragging = true;
         this.idleActive = false;
+        this.scriptedTargetActive = false;
     }
 
     dragTo(x, y) {
@@ -208,15 +223,19 @@ export class spawn {
 
     update(deltaMS) {
         // Disabling movement cancels pointer movement at the current position; idle remains active.
-        if (this.move !== this.previousMove) {
+       if (this.move !== this.previousMove) {
             if (!this.move) {
                 this.dragging = false;
-                this.idleCenterX = this.container.x;
-                this.idleCenterY = this.container.y;
-                this.targetX = this.container.x;
-                this.targetY = this.container.y;
-                this.idleActive = true;
+
+                if (!this.scriptedTargetActive) {
+                    this.idleCenterX = this.container.x;
+                    this.idleCenterY = this.container.y;
+                    this.targetX = this.container.x;
+                    this.targetY = this.container.y;
+                    this.idleActive = true;
+                }
             }
+
             this.previousMove = this.move;
         }
 
@@ -277,6 +296,7 @@ export class spawn {
         }
 
         if (!this.dragging && !this.idleActive && distanceToTarget <= 0.5) {
+            this.scriptedTargetActive = false;
             this.idleCenterX = this.targetX;
             this.idleCenterY = this.targetY;
             this.idleActive = true;

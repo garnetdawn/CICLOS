@@ -1,8 +1,9 @@
-import { Application, Assets, Container, Sprite } from 'pixi.js';
+import { Application, Assets, BlurFilter, Container, Sprite } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import { initDevtools } from '@pixi/devtools';
 import { spawn } from './movement.js';
-import { createLeaf } from './modules.js';
+import { createLeaf, feedNearbyNpc } from './modules.js';
+import { dialogueTrees, NpcDialogueManager } from './dialogue.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 
 
@@ -12,7 +13,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
 
     await app.init({
         resizeTo: window,
-        backgroundColor: 0x808080,
+        backgroundColor: 'gray',
     });
 
     await initDevtools({ app });
@@ -36,6 +37,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         npcSegmentTexture,
 
         vigTex,
+        CTex,
         C1Tex,
         C2Tex,
         C3Tex,
@@ -52,6 +54,20 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         skyTex,
         leafTex,
 
+        glowTex,
+        eatTex,
+        grabTex,
+
+        yesTex,
+        noTex,
+        foodGlowTex,
+        friendTex,
+        friendWhatTex,
+        whatTex,
+        foodWhatTex,
+        redWhatTex,
+        sadTex,
+
     ] = await Promise.all([
         Assets.load(new URL('../.assets/sprites/h_cat.png', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/h_bun.png', import.meta.url).href),
@@ -65,6 +81,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         Assets.load(new URL('../.assets/sprites/n_seg.png', import.meta.url).href),
 
         Assets.load(new URL('../.assets/sprites/vignette.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/C.png', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/C_1.png', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/C-2.png', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/C-3.png', import.meta.url).href),
@@ -81,6 +98,21 @@ import { AdvancedBloomFilter } from 'pixi-filters';
 
         Assets.load(new URL('../.assets/sprites/skybox.jpg', import.meta.url).href),
         Assets.load(new URL('../.assets/sprites/leaf.png', import.meta.url).href),
+
+        Assets.load(new URL('../.assets/sprites/bloom.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/eat.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/grab.png', import.meta.url).href),
+
+        Assets.load(new URL('../.assets/sprites/yes.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/no.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/food-glow.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/friend.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/friend-what.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/what.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/food-what.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/red-what.png', import.meta.url).href),
+        Assets.load(new URL('../.assets/sprites/sad.png', import.meta.url).href),
+
     ]);
 
     const textures = {
@@ -125,15 +157,16 @@ import { AdvancedBloomFilter } from 'pixi-filters';
      
     viewport.zoom(-200);
 
+    ////// guide Null for adjusting viewport manually /////
     const guide = new Container()
     viewport.addChild(guide);
-    guide.position.set(1000,1600)
-    viewport.follow(guide, { speed: 2, radius: 100, acceleration: 0.1 });
+    guide.position.set(1260,1650)
+    viewport.follow(guide, { speed: 3, radius: 100, acceleration: 0.5 });
 
 
     viewport.wheel(); //// DEBUG ONLY
     
-    viewport.filters = new AdvancedBloomFilter({ bloomScale:0.2, brightness:1});
+    //viewport.filters = new AdvancedBloomFilter({ bloomScale:0.5, brightness:1});
 
     const vig = new Sprite(vigTex);
     vig.zIndex = 0;
@@ -180,15 +213,47 @@ import { AdvancedBloomFilter } from 'pixi-filters';
         tree3.position.set(2000, 7000);
         tree3.zIndex = -1;
     midground.addChild(tree3); 
+
+    const tree5 = new Sprite(tree3Tex);
+        tree5.label = 'Background Tree';
+        tree5.anchor.set(0);
+        tree5.scale.set(-1,1);
+        tree5.position.set(2000, 6100);
+        tree5.zIndex = -1;
+    midground.addChild(tree5);
+
     
-const leafPositions = [  // ------------------------ moss amount and positions. moss spawn is handled on player spawn.
+const leafPositions = [  // Leaf positions; spawning is triggered by NPC dialogue.
     [1590, 1000],
     [2000, 1800],
     [2300, 1900],
-    [1200, 2500],
-    [1800, 4200],
-    [900, 6000],
+    [2820, 2356],
+    [1120, 2600],
+    [520, 3300],
+    [50,3000],
+    [30,2930],
+    [990,4390],
+    [1540,5350],
 ];
+
+function spawnLeaves() {
+    for (const [x, y] of leafPositions) {
+    createLeaf({
+        texture: leafTex,
+        parent: midground,
+        ticker: app.ticker,
+        player,
+        app,
+        viewport,
+        eatTex: eatTex,
+        grabTex: grabTex,
+        glowTex,
+        x,
+        y,
+    });
+    }
+}
+
     
 
     const masks = new Container();  //-------------------- intro mask choices
@@ -212,6 +277,8 @@ const leafPositions = [  // ------------------------ moss amount and positions. 
         mask3.rotation = -Math.PI / 9;
     masks.addChild(mask3)
 
+    const maskGlows = [];
+
     for (const mask of [mask1, mask2, mask3]) { // --------- mask selection
     const baseRotation = mask.rotation;
     let hovered = false;
@@ -219,14 +286,33 @@ const leafPositions = [  // ------------------------ moss amount and positions. 
     mask.eventMode = 'static';
     mask.cursor = 'pointer';
 
+    const glow = new Sprite(glowTex);
+        glow.anchor.copyFrom(mask.anchor);
+        glow.position.copyFrom(mask.position);
+        glow.scale.set(1.5)
+        glow.rotation = mask.rotation;
+        glow.alpha= 0.1;
+
+        masks.addChildAt(glow, masks.getChildIndex(mask));
+        maskGlows.push(glow);
+
     mask.on('pointerover', () => { hovered = true; });
     mask.on('pointerout', () => { hovered = false; });
 
     app.ticker.add((ticker) => {
+        if (mask.eventMode === 'none') return;
+
         const target = baseRotation + (hovered ? 0.1 : 0);
         const ease = 1 - Math.exp(-12 * ticker.deltaMS / 1000);
-
         mask.rotation += (target - mask.rotation) * ease;
+        glow.rotation = mask.rotation;
+
+        const targetGlowScale = hovered ? 2 : 1.5;
+        glow.scale.set(
+        glow.scale.x + (targetGlowScale - glow.scale.x) * ease,);
+
+        const targetAlpha = hovered ? 0.5 : 0.3;
+        glow.alpha= glow.alpha + (targetAlpha - glow.alpha) * ease;
     });
     
 }
@@ -245,6 +331,33 @@ const leafPositions = [  // ------------------------ moss amount and positions. 
         trunk1.scale.set (-1);
         trunk1.position.set(0,1700);
     foreground.addChild(trunk1);
+
+    const trunk2 = new Sprite(trunk3Tex);
+        trunk2.anchor.set(1,1);
+        trunk2.scale.set(-0.4,0.4);
+        trunk2.position.set(0,1700);
+    foreground.addChild(trunk2);
+
+    const trunk3 = new Sprite(trunk2Tex);
+        trunk3.anchor.set(1,1);
+        trunk3.scale.set(1);
+        trunk3.position.set(3500,5000);
+    foreground.addChild(trunk3);
+
+    const trunk4 = new Sprite(tree2Tex);
+        trunk4.anchor.set(0,1);
+        trunk4.scale.set(-0.6,0.6);
+        trunk4.position.set(3500,7000);
+    foreground.addChild(trunk4);
+
+    const tree4 = new Sprite(tree2Tex);
+        tree4.label = 'Background Tree';
+        tree4.anchor.set(0.5, 1);
+        //tree3.rotation = Math.PI / 5;
+        tree4.scale.set(1);
+        tree4.position.set(2000, 9500);
+        tree4.zIndex = -1;
+    foreground.addChild(tree4); 
     
     /////////////////////////////////////////////////////////////////////////////////////
 
@@ -263,9 +376,17 @@ const leafPositions = [  // ------------------------ moss amount and positions. 
 
         
     const logo = new Container(); /// ------- LOGO
-    background.addChild(logo);
+    app.stage.addChild(logo);
 
-        logo.position.set(700,450)
+    const logoSlideDistance = 100;
+    let logoOffsetY = -logoSlideDistance;
+
+    const centerLogo = () => {
+        logo.position.set(app.screen.width / 2, app.screen.height / 7 + logoOffsetY);
+    };
+
+    centerLogo();
+    app.renderer.on('resize', centerLogo);
         logo.scale.set(0.7)
 
     const C1 = new Sprite(C1Tex);
@@ -280,13 +401,60 @@ const leafPositions = [  // ------------------------ moss amount and positions. 
     const C3 = new Sprite(C3Tex);
         C3.anchor.set(0.5,0.5)
 
+    const C = new Sprite(CTex);
+        C.anchor.set(0.5,0.5)
+        C.scale.set(1.2)
+        C.position.set(0,200)
+
     app.ticker.add((time) => {
         C1.rotation -= 0.01 * time.deltaTime;
         C2.rotation -= -0.01 * time.deltaTime;
         C3.rotation -= 0.01 * time.deltaTime;
   });
 
-    logo.addChild(C1,C2,C3);
+    logo.addChild(C1,C2,C3,C);
+    const logoBlur = new BlurFilter({ strength: 10 });
+    logo.filters = logoBlur
+
+    logo.alpha = 0;
+
+    let logoAnimation;
+
+    function animateLogo(show) {
+        if (logoAnimation) app.ticker.remove(logoAnimation);
+
+        logo.visible = true;
+
+        const duration = show ? 5000 : 450;
+        const startAlpha = logo.alpha;
+        const startOffsetY = logoOffsetY;
+        const startBlur = logoBlur.strength;
+        const endAlpha = show ? 1 : 0;
+        const endOffsetY = show ? 0 : -logoSlideDistance;
+        const endBlur = show ? 0 : 10;
+        let elapsed = 0;
+
+        logoAnimation = (ticker) => {
+            elapsed = Math.min(elapsed + ticker.deltaMS, duration);
+            const t = elapsed / duration;
+            const eased = show ? 1 - Math.pow(1 - t, 3) : Math.pow(t, 3);
+
+            logo.alpha = startAlpha + (endAlpha - startAlpha) * eased;
+            logoOffsetY = startOffsetY + (endOffsetY - startOffsetY) * eased;
+            logo.y = app.screen.height / 7 + logoOffsetY;
+            logoBlur.strength = startBlur + (endBlur - startBlur) * eased;
+            C.y = 170 + startOffsetY + (endOffsetY - startOffsetY) * eased;
+
+            if (t >= 1) {
+                app.ticker.remove(logoAnimation);
+                if (!show) logo.visible = false;
+            }
+        };
+
+        app.ticker.add(logoAnimation);
+    }
+
+    animateLogo(true);
 
 
     /////////////////////////////////////////////////////////////////////////////////////
@@ -317,8 +485,11 @@ const leafPositions = [  // ------------------------ moss amount and positions. 
 ////////////////////////////////////////////
 let player = null;
 
-function chooseMask(maskName) {
+function chooseMask(maskName, maskSprite) {
     if (player) return;
+
+    const start = viewport.toLocal(maskSprite.getGlobalPosition());
+    const destination = { x: start.x, y: start.y - 600 }; // Pixi's y increases downward
 
     player = new spawn({
         app,
@@ -327,30 +498,85 @@ function chooseMask(maskName) {
         mask: maskName,
         move: true,
         color: 'player',
-        x: 1000,
-        y: 1700,
+        x: start.x,
+        y: start.y,
     });
 
-    viewport.addChild(player.container);
+        viewport.addChild(player.container);
+    player.setTarget(destination.x, destination.y);
     viewport.follow(player.container, { speed: 5, radius: 100, acceleration: 0.1 });
-    masks.visible = false; // Hide the choices after selection
+    viewport.snapZoom({
+        width: viewport.screenWidth + 700,
+        time: 1500, // duration in ms
+        ease: 'easeInOutQuad', // easing name or custom easing function
+        center: viewport.center, 
+        removeOnComplete: true, // clean up plugin once finished
+    });
+
+    animateMaskExit(maskSprite);
+    animateLogo(false);
 
     app.ticker.add((ticker) => {
                     player.update(ticker.deltaMS);
                 });
 
-    for (const [x, y] of leafPositions) {
-    createLeaf({
-        texture: leafTex,
-        parent: midground,
-        ticker: app.ticker,
-        player,
-        x,
-        y,
-        });
-    }
+
 
 }
+////animates masks falling////
+function animateMaskExit(selectedMask) {
+    const choices = [mask1, mask2, mask3];
+    const fallers = choices
+        .filter((mask) => mask !== selectedMask)
+        .map((sprite) => ({
+            sprite,
+            velocityX: Math.sign(sprite.x - selectedMask.x) * 140,
+            velocityY: 0,
+            rotationSpeed: Math.sign(sprite.x - selectedMask.x) * 2,
+        }));
+
+    const startScaleX = selectedMask.scale.x;
+    const startScaleY = selectedMask.scale.y;
+    let elapsed = 0;
+
+    for (const mask of choices) {
+        mask.eventMode = 'none';
+    }
+    const glowStartAlphas = maskGlows.map((glow) => glow.alpha);
+
+    const update = (ticker) => {
+        const dt = ticker.deltaMS / 1000;
+        elapsed += dt;
+
+        const disappearProgress = Math.min(elapsed / 0.3, 1);
+
+        maskGlows.forEach((glow, index) => {
+            glow.alpha = glowStartAlphas[index] * (1 - disappearProgress);
+        });
+
+        selectedMask.alpha = 1 - disappearProgress;
+        selectedMask.scale.set(
+            startScaleX * (1 - disappearProgress),
+            startScaleY * (1 - disappearProgress),
+        );
+
+        for (const faller of fallers) {
+            faller.velocityY += 900 * dt;
+            faller.sprite.x += faller.velocityX * dt;
+            faller.sprite.y += faller.velocityY * dt;
+            faller.sprite.rotation += faller.rotationSpeed * dt;
+            faller.sprite.alpha = Math.max(0, 1 - Math.max(0, elapsed - 0.8) / 0.5);
+        }
+
+        if (elapsed >= 1.3) {
+            app.ticker.remove(update);
+            midground.removeChild(masks);
+        }
+    };
+
+    app.ticker.add(update);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 for (const [maskSprite, maskName] of [
     [mask1, 'bun'],
@@ -359,7 +585,7 @@ for (const [maskSprite, maskName] of [
 ]) {
     maskSprite.on('pointerdown', (event) => {
         event.stopPropagation();
-        chooseMask(maskName);
+        chooseMask(maskName, maskSprite);
     });
 }
 
@@ -376,10 +602,71 @@ for (const [maskSprite, maskName] of [
         y: 3000,
     });
 
+    const NpcDog = new spawn({
+        app,
+        textures,
+        seg: 2,
+        mask: 'dog',
+        move: true,
+        color: 'npc',
+        x: 2000,
+        y: 5000,
+    });
+
+    const NpcBun = new spawn({
+        app,
+        textures,
+        seg: 5,
+        mask: 'bun',
+        move: true,
+        color: 'npc',
+        x: 1300,
+        y: 7000,
+    });
+
     viewport.addChild(NpcOwl.container);
+    viewport.addChild(NpcDog.container);
+    viewport.addChild(NpcBun.container);
+
+    const dialogueManager = new NpcDialogueManager({
+        screen: app.screen,
+        stage: app.stage,
+        viewport,
+        ticker: app.ticker,
+        getPlayer: () => player,
+        icons: {
+            eat: eatTex,
+            grab: grabTex,
+            yes: yesTex,
+            no: noTex,
+            foodGlow: foodGlowTex,
+            friend: friendTex,
+            friendWhat: friendWhatTex,
+            what: whatTex,
+            foodWhat: foodWhatTex,
+            redWhat: redWhatTex,
+            leafGlow: foodGlowTex,
+            sad: sadTex,
+        },
+        onFeed: (currentPlayer, npc) => feedNearbyNpc({
+            player: currentPlayer,
+            npc,
+            ticker: app.ticker,
+        }),
+        onSpawnLeaves: () => spawnLeaves(),
+        answerSpacing: 300,
+        answerBottomOffset: 200,
+    });
+
+    dialogueManager.registerNpc('owl', NpcOwl, dialogueTrees.owl);
+    dialogueManager.registerNpc('dog', NpcDog, dialogueTrees.dog);
+    dialogueManager.registerNpc('bun', NpcBun, dialogueTrees.bun);
+
     app.ticker.add((ticker) => {
                     
                     NpcOwl.update(ticker.deltaMS);
+                    NpcDog.update(ticker.deltaMS);
+                    NpcBun.update(ticker.deltaMS);
                 });
 
     
@@ -395,6 +682,8 @@ for (const [maskSprite, maskName] of [
 
         player.setCursorPosition(worldPosition.x, worldPosition.y);
         NpcOwl.setCursorPosition(worldPosition.x, worldPosition.y);
+        NpcDog.setCursorPosition(worldPosition.x, worldPosition.y);
+        NpcBun.setCursorPosition(worldPosition.x, worldPosition.y);
     });
 
     app.stage.on('pointerdown', (event) => {
