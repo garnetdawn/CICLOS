@@ -13,7 +13,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
 
     await app.init({
         resizeTo: window,
-        backgroundColor: 'gray',
+        backgroundColor: 'black',
     });
 
     await initDevtools({ app });
@@ -164,7 +164,7 @@ import { AdvancedBloomFilter } from 'pixi-filters';
     viewport.follow(guide, { speed: 3, radius: 100, acceleration: 0.5 });
 
 
-    viewport.wheel(); //// DEBUG ONLY
+    //viewport.wheel(); //// DEBUG ONLY
     
     //viewport.filters = new AdvancedBloomFilter({ bloomScale:0.5, brightness:1});
 
